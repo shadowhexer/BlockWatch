@@ -1,0 +1,136 @@
+<template>
+  <div id="user-identity">
+    <div class="container">
+      <h1>Select Your Identity</h1>
+
+      <!-- User Identity Selection -->
+      <div class="form-group">
+        <label for="identity">Choose Your Identity: </label>
+        <select v-model="userIdentity" id="identity" class="form-control">
+          <option value="" disabled selected>Select your identity</option>
+          <option value="Beunavista">Beunavista</option>
+          <option value="Mahay">Mahay</option>
+        </select>
+      </div>
+
+      <!-- Connect Button -->
+      <button @click="connectToFabric" :disabled="!userIdentity" class="btn btn-primary">Connect</button>
+
+      <!-- Status Message -->
+      <p v-if="connectionStatus" :style="{ color: statusColor }">{{ connectionStatus }}</p>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      userIdentity: "", // Initially empty, no default identity selected
+      connectionStatus: "", // To store connection status message
+      statusColor: "black", // Status message color
+    };
+  },
+  methods: {
+    // Method to handle connection to the Fabric network
+    async connectToFabric() {
+      try {
+        this.connectionStatus = "Connecting...";
+        this.statusColor = "black";
+
+        // Send user identity to backend for connection
+        const response = await fetch("http://localhost:3000/connect", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ userIdentity: this.userIdentity }),
+  credentials: 'include', // Include cookies with the request
+});
+
+        // Check if the response is successful
+        if (response.ok) {
+          const data = await response.json();
+          this.connectionStatus = `✔️ ${data.message}`;
+          this.statusColor = "green";
+
+          // Redirect to the /report page with userIdentity in the query string
+          this.$router.push({ path: '/report', query: { userIdentity: this.userIdentity } });
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.message);
+        }
+      } catch (error) {
+        this.connectionStatus = `❌ Error: ${error.message}`;
+        this.statusColor = "red";
+      }
+    },
+  },
+};
+</script>
+
+<style scoped>
+#user-identity {
+  background-color: #f4f6f9; /* Light grey background */
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.container {
+  background-color: white; /* White background for the form */
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px; /* Limit width of the form */
+}
+
+h1 {
+  text-align: center;
+  color: #2c3e50; /* Darker blue for the heading */
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  font-size: 16px;
+  color: #34495e;
+}
+
+select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  font-size: 14px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  background-color: #3498db; /* Hyperledger Blue */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:disabled {
+  background-color: #bbb;
+}
+
+p {
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+}
+</style>
