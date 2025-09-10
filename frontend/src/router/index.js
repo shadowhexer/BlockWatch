@@ -7,7 +7,7 @@ import StartedViews from '@/views/user/StartedViews.vue'
 import LoginAdmin from '@/views/barangay/LoginAdmin.vue'
 import UnVerified_Verified from '@/components/barangay/UnVerified_Verified.vue'
 import AssigningTanod from '@/components/barangay/AssigningTanod.vue'
-
+import ProtoReporting from '@/views/user/ProtoReporting.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -19,6 +19,7 @@ const router = createRouter({
     { path: '/barangay-view', name: 'barangay-view', component: BarangayView },
     { path: '/', name: 'started', component: StartedViews },
     { path: '/login-admin', name: 'login-admin', component: LoginAdmin },
+    { path: '/proto-reporting', name: 'proto-reporting', component: ProtoReporting }
   ]
 })
 

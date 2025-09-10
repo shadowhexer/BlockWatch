@@ -143,7 +143,7 @@ export default {
         this.statusColor = "green";
 
         // Redirect to the report page
-        this.$router.push({ path: "/report", query: { userIdentity: this.userIdentity } });
+        this.$router.push({ path: "/proto-reporting", query: { userIdentity: this.userIdentity } });
       } catch (error) {
         this.connectionStatus = `❌ Error: ${error.message}`;
         this.statusColor = "red";
@@ -159,7 +159,7 @@ export default {
 
 <style scoped>
 #user-identity {
-  background-color: #FAF7F3; /* Light grey background */
+  background-color: black;
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -178,9 +178,9 @@ export default {
 }
 
 .container {
-  background-color: #FEF9F2; /* White background for the form */
+  background-color: #ffffff; /* White background for the form */
   padding: 40px;
-  border: 2px solid #ced4da;
+  border: 3px solid #00ff00;
   border-radius: 12px;
   width: 100%;
   max-width: 400px; /* Limit width of the form */

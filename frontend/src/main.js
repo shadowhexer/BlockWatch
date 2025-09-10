@@ -8,6 +8,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 
 // Import all of Bootstrap’s JS
 import 'bootstrap'
+import 'boxicons/css/boxicons.min.css'
 
 // Import the main App component and the router
 import App from './App.vue'

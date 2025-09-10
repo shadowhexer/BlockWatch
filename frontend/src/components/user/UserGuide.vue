@@ -1,9 +1,10 @@
 <template>
   <div class="overlay">
     <div class="user-guide">
+      <div class="guide-text">
       <h2>Welcome to the BlockNomy-mity System</h2>
       <p>This video will help you understand how to use the system.</p>
-
+      </div>
       <!-- Video element to show the guidelines -->
       <video controls muted class="guide-video" :src="videoSrc" type="video/mp4">
         Your browser does not support the video tag.
@@ -49,7 +50,7 @@ export default {
 }
 
 .user-guide {
-  background-color: white;
+  background-color: transparent;
   font-size: larger;
   font-family: serif;
   padding: 20px;
@@ -58,6 +59,14 @@ export default {
   max-width: 600px;
   width: 100%;
   text-align: center;
+  border: 2px solid rgb(15, 254, 51);
+}
+
+.guide-text {
+  border-radius: 20px;
+  background-color: rgb(3, 3, 3);
+  color: rgb(15, 254, 51);
+  margin-bottom: 20px;
 }
 
 .guide-video {

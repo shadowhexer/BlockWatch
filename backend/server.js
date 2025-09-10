@@ -40,6 +40,60 @@ app.use(express.json());
 // ✅ Serve frontend from 'crime-system' folder
 app.use(express.static(path.join(__dirname, "UI", "dist")));
 
+// Set up storage for uploaded files
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = file.mimetype.startsWith('image/') ? './uploads/images' : './uploads/videos';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const fileName = Date.now() + path.extname(file.originalname);
+    cb(null, fileName);
+  },
+});
+
+const uploads = multer({ storage: storage });
+
+// Store uploaded files' paths for later deletion
+let uploadedFiles = {};
+
+app.post('/upload', uploads.single('file'), (req, res) => {
+  const fileUrl = `http://localhost:3000/uploads/${req.file.mimetype.startsWith('image/') ? 'images' : 'videos'}/${req.file.filename}`;
+  
+  // Store the file path for later deletion
+  uploadedFiles[req.file.filename] = path.join(__dirname, 'uploads', req.file.mimetype.startsWith('image/') ? 'images' : 'videos', req.file.filename);
+
+  res.send({ fileUrl, fileName: req.file.filename }); // Send file URL and filename
+});
+
+// API endpoint to remove file
+app.delete('/delete-file/:fileName', (req, res) => {
+  const fileName = req.params.fileName;
+
+  // Find file path from memory
+  const filePath = uploadedFiles[fileName];
+  
+  if (!filePath) {
+    return res.status(404).send('File not found.');
+  }
+
+  // Remove the file from the server
+  fs.unlink(filePath, (err) => {
+    if (err) {
+      return res.status(500).send('Error deleting file.');
+    }
+    
+    // Optionally, remove the file from the memory/database
+    delete uploadedFiles[fileName];
+
+    res.send('File deleted successfully.');
+  });
+});
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Route to check session for user identity
 app.get("/get-identity-session", (req, res) => {
   console.log("Session data:", req.session);
