@@ -3,19 +3,13 @@
     <img src="@/assets/logo.png" alt="logo" class="logo" />
     <div class="container">
       <!-- Display identity -->
+      Welcome Users
       <div v-if="userIdentity" class="form-group">
         <label for="identity">Your Location: </label>
         <p>{{ userIdentity }}</p>
       </div>
-
-      <!-- Loading Spinner -->
-      <div v-if="isLoading">
-        <p>Loading...</p>
-        <!-- Optionally, you can add a spinner here -->
-      </div>
-
       <!-- Connect Button -->
-      <button @click="connectToFabric" :disabled="!userIdentity || isLoading" class="btn btn-primary">Continue</button>
+      <button @click="connectToFabric" :disabled="!userIdentity" class="btn btn-primary">Continue</button>
 
       <!-- Status Message -->
       <p v-if="connectionStatus" :style="{ color: statusColor }">{{ connectionStatus }}</p>
@@ -24,8 +18,6 @@
 </template>
 
 <script>
-import axios from 'axios';
-
 export default {
   data() {
     return {
@@ -39,69 +31,46 @@ export default {
     // Get user's coordinates and determine identity dynamically
     getCurrentLocation() {
       if (navigator.geolocation) {
-        const options = {
-          enableHighAccuracy: true, // Optional, but allows more precise location
-          timeout: 15000, // Timeout after 10 seconds
-          maximumAge: 0, // Force a fresh request every time
-        };
-
-        this.isLoading = true; // Start loading
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
             console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
-            this.reverseGeocode(latitude, longitude); // Proceed with reverse geocoding
+            this.reverseGeocode(latitude, longitude);
           },
           (error) => {
-            let errorMessage = "Unknown error";
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                errorMessage = "User denied the request for Geolocation.";
-                break;
-              case error.POSITION_UNAVAILABLE:
-                errorMessage = "Location information is unavailable.";
-                break;
-              case error.TIMEOUT:
-                errorMessage = "The request to get user location timed out.";
-                break;
-              case error.UNKNOWN_ERROR:
-                errorMessage = "An unknown error occurred.";
-                break;
-            }
-
             console.error("Error getting location: ", error);
-            this.connectionStatus = `❌ Error: ${errorMessage}`;
+            this.connectionStatus = `❌ Error: ${error.message}`;
             this.statusColor = "red";
-            this.isLoading = false; // Stop loading
           },
-          options // Pass options as the third parameter
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0,
+          }
         );
       } else {
         this.connectionStatus = "❌ Geolocation is not supported by this browser.";
         this.statusColor = "red";
-        this.isLoading = false; // Stop loading
       }
     },
 
+    // Reverse geocode the coordinates if no known location matches
     reverseGeocode(latitude, longitude) {
-      // Construct the proper URL with the API key and location
       const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${latitude}&lon=${longitude}&apiKey=40ab30f288d142e9bc097f4b490d76f9`;
 
       fetch(url)
         .then((response) => response.json())
         .then((data) => {
-          // Check if the response contains any geocoding result
           if (data.features && data.features.length > 0) {
             const displayName = data.features[0].properties.formatted; // Get the full address
 
-            // Match the address with known values like "Mahay" or "Buenavista"
-            if (displayName.includes("Mahay")) {
+            if (displayName.includes("Butuan")) {
               this.userIdentity = "Mahay"; // Set identity to "Mahay"
-              this.connectionStatus = "Identity: Brgy. Mahay found!";
+              this.connectionStatus = "Identity: Brgy. Mahay";
               this.statusColor = "green";
             } else if (displayName.includes("Buenavista")) {
               this.userIdentity = "Buenavista"; // Set identity to "Buenavista"
-              this.connectionStatus = "Identity: Brgy. Buenavista found!";
+              this.connectionStatus = "Identity: Brgy. Buenavista";
               this.statusColor = "green";
             } else {
               this.userIdentity = displayName; // Use the full address if neither is found
@@ -119,7 +88,6 @@ export default {
           console.error("Error fetching location:", error);
           this.connectionStatus = `❌ Error: ${error.message}`;
           this.statusColor = "red";
-          this.isLoading = false; // Stop loading
         });
     },
 
@@ -135,15 +103,26 @@ export default {
         this.connectionStatus = "Connecting...";
         this.statusColor = "black";
 
-        const response = await axios.post("http://localhost:3000/connect", {
-          userIdentity: this.userIdentity,
-        }, { withCredentials: true });
+        const response = await fetch("http://localhost:3000/connect", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userIdentity: this.userIdentity }),
+        });
 
-        this.connectionStatus = `✅ ${response.data.message}`;
-        this.statusColor = "green";
+        if (response.ok) {
+          const data = await response.json();
+          this.connectionStatus = `✅ ${data.message}`;
+          this.statusColor = "green";
 
-        // Redirect to the report page
-        this.$router.push({ path: "/proto-reporting", query: { userIdentity: this.userIdentity } });
+          // Redirect to the report page
+          this.$router.push({ path: "/proto-reporting", query: { userIdentity: this.userIdentity } });
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.message);
+        }
       } catch (error) {
         this.connectionStatus = `❌ Error: ${error.message}`;
         this.statusColor = "red";
@@ -159,7 +138,7 @@ export default {
 
 <style scoped>
 #user-identity {
-  background-color: black;
+  background-color: #262529; /* Light grey background */
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -178,9 +157,9 @@ export default {
 }
 
 .container {
-  background-color: #ffffff; /* White background for the form */
+  background-color: #FEF9F2; /* White background for the form */
   padding: 40px;
-  border: 3px solid #00ff00;
+  border: 2px solid #26a64a;
   border-radius: 12px;
   width: 100%;
   max-width: 400px; /* Limit width of the form */

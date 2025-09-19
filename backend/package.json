@@ -2,6 +2,7 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "crimedetector.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -11,6 +12,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@helia/dag-json": "^4.1.0",
+    "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "compromise": "^14.14.4",
     "cors": "^2.8.5",
@@ -20,10 +23,12 @@
     "express-session": "^1.18.2",
     "fabric-network": "^2.2.20",
     "fs": "^0.0.1-security",
+    "helia": "^5.5.1",
     "langdetect": "^0.2.1",
     "multer": "^2.0.2",
     "mysql2": "^3.14.3",
     "path": "^0.12.7",
+    "rimraf": "^4.4.1",
     "validator": "^13.15.15"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
-const langdetect = require("langdetect"); // Install langdetect
-const compromise = require("compromise"); // For basic NLP tasks
+import langdetect from "langdetect"; // Import langdetect for language detection
+import compromise from "compromise"; // Import compromise for basic NLP tasks
 
 // Define crime keywords for each language
 const lowCrimeKeywords = {
@@ -13,7 +13,14 @@ const lowCrimeKeywords = {
     "damage",
   ],
   tagalog: ["paninira", "grafitti", "nakawan", "shoplifting", "gulo"],
-  bisaya: ["pamalikas", "namalikas", "nangawat", "paglapas sa balaod", "gubot", "panaway"],
+  bisaya: [
+    "pamalikas",
+    "namalikas",
+    "nangawat",
+    "paglapas sa balaod",
+    "gubot",
+    "panaway",
+  ],
 };
 
 const highCrimeKeywords = {
@@ -85,4 +92,4 @@ function classifyCrime(report) {
   return severity;
 }
 
-module.exports = { classifyCrime }; // Export the function for use in other files
+export { classifyCrime }; // Export the function for use in other files

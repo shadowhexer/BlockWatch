@@ -1,42 +1,72 @@
 <template>
-  <div class="register-container">
-    <!-- Flex container to align the two sections side by side -->
+  <div class="container mt-5 bg-dark text-light p-4 rounded">
     <div class="row">
       <!-- Left Column: Register New Tanod -->
-      <div class="column left-column">
-        <h2>👮 Register New Tanod</h2>
-        <div class="form">
-          <input v-model="username" placeholder="Username" />
-          <input v-model="password" placeholder="Password" type="password" />
-          <div class="buttons">
-            <button @click="register">Register</button>
+      <div class="col-md-6 mb-4">
+        <div class="card bg-secondary text-light border-0 rounded-2 shadow-lg">
+          <div class="card-header bg-dark">
+            <h2>👮 Register New Tanod</h2>
           </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="username" class="form-label">Username</label>
+              <input
+                v-model="username"
+                id="username"
+                type="text"
+                class="form-control rounded-3"
+                placeholder="Enter Username"
+              />
+            </div>
 
-          <!-- Display registration message -->
-          <p class="message" v-if="message">{{ message }}</p>
+            <div class="form-group mt-3">
+              <label for="password" class="form-label">Password</label>
+              <input
+                v-model="password"
+                id="password"
+                type="password"
+                class="form-control rounded-3"
+                placeholder="Enter Password"
+              />
+            </div>
+
+            <div class="mt-3">
+              <button @click="register" class="btn btn-primary w-100 rounded-3">
+                Register
+              </button>
+            </div>
+
+            <!-- Display registration message -->
+            <p class="mt-3 text-center text-success" v-if="message">{{ message }}</p>
+          </div>
         </div>
       </div>
 
       <!-- Right Column: List of Registered Tanods -->
-      <div class="column right-column">
-        <h2>List of Registered Tanods</h2>
-
-        <!-- Table to display registered tanods -->
-        <table>
-          <thead>
-            <tr>
-              <th>Tanod ID</th>
-              <th>Name</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Loop through the tanods array and display each tanod -->
-            <tr v-for="(tanod, index) in tanods" :key="index">
-              <td>{{ tanod.id }}</td>
-              <td>{{ tanod.username }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="col-md-6">
+        <div class="card bg-secondary text-light border-0 rounded-1 shadow-lg">
+          <div class="card-header bg-dark">
+            <h2>List of Registered Tanods</h2>
+          </div>
+          <div class="card-body">
+            <!-- Table to display registered tanods -->
+            <table class="table table-bordered table-striped text-light">
+              <thead class="bg-dark">
+                <tr>
+                  <th>Tanod ID</th>
+                  <th>Name</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Loop through the tanods array and display each tanod -->
+                <tr v-for="(tanod, index) in tanods" :key="index">
+                  <td>{{ tanod.id }}</td>
+                  <td>{{ tanod.username }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -102,81 +132,3 @@ export default {
   }
 };
 </script>
-
-<style scoped>
-.register-container {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #dee2e6;
-  font-family: 'Segoe UI', sans-serif;
-  max-width: 100%;
-}
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.column {
-  flex: 1;
-  padding: 20px;
-}
-
-.left-column {
-  padding-right: 30px; /* Add space between columns */
-}
-
-h2 {
-  text-align: center;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-}
-
-table th, table td {
-  padding: 12px;
-  text-align: left;
-  border: 1px solid #dee2e6;
-}
-
-input {
-  width: 100%;
-  padding: 8px;
-  margin: 6px 0;
-  border: 1px solid #bbb;
-  border-radius: 4px;
-  font-size: 14px;
-  box-sizing: border-box;
-}
-
-.buttons {
-  display: flex;
-  justify-content: center;
-  margin-top: 10px;
-}
-
-button {
-  padding: 8px 20px;
-  background-color: #007bff;
-  border: none;
-  color: white;
-  font-weight: 600;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.message {
-  color: #d9534f;
-  margin-top: 12px;
-  min-height: 18px;
-  text-align: center;
-}
-</style>

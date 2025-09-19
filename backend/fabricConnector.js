@@ -1,7 +1,7 @@
-const fs = require("fs");
-const path = require("path");
-const { Gateway, Wallets } = require("fabric-network"); // Assuming you're using Hyperledger Fabric SDK
-const mysql = require("mysql2");
+import fs from "fs";
+import path from "path";
+import { Gateway, Wallets } from "fabric-network"; // Assuming you're using Hyperledger Fabric SDK
+import mysql from "mysql2"; // Importing mysql2 for MySQL database connection
 
 const mysqlConnection = mysql.createConnection({
   host: "localhost",
@@ -9,8 +9,6 @@ const mysqlConnection = mysql.createConnection({
   password: "Nik@1631",
   database: "crime_report_db", // Replace with your actual database name
 });
-
-module.exports = mysqlConnection;
 
 // Utility function to connect to Fabric Gateway
 async function connectToFabric(userIdentity) {
@@ -95,4 +93,4 @@ async function connectToFabric(userIdentity) {
   }
 }
 
-module.exports = { connectToFabric, mysqlConnection };
+export { connectToFabric, mysqlConnection };

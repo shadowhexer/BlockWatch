@@ -1,22 +1,22 @@
 <template>
   <!-- Logo Section Outside the Dashboard -->
-  <div class="logo-container">
-    <img src="@/assets/logo.png" alt="logo" class="logo" />
-    <img src="@/assets/buenavista.png" alt="logo" class="logo" />
-    <img src="@/assets/mahay.png" alt="logo" class="logo" />
+  <div class="logo-container d-flex justify-content-center mb-4">
+    <img src="@/assets/logo.png" alt="logo" class="logo mx-2" />
+    <img src="@/assets/buenavista.png" alt="logo" class="logo mx-2" />
+    <img src="@/assets/mahay.png" alt="logo" class="logo mx-2" />
   </div>
 
   <!-- Main Login Container -->
   <div class="container">
-    <h2>👮 Tanod Login</h2>
+    <h2 class="text-center mb-4">👮 Tanod Login</h2>
 
     <div class="form">
-      <input v-model="username" placeholder="Username" />
-      <input v-model="password" placeholder="Password" type="password" />
+      <input v-model="username" placeholder="Username" class="form-control mb-3" />
+      <input v-model="password" placeholder="Password" type="password" class="form-control mb-3" />
 
-      <button @click="login">Login</button>
+      <button @click="login" class="btn btn-primary btn-block mb-3">Login</button>
 
-      <p class="message" v-if="message">{{ message }}</p>
+      <p class="message text-danger" v-if="message">{{ message }}</p>
     </div>
   </div>
 </template>
@@ -58,8 +58,7 @@ export default {
 /* Logos Container Outside of the Main Login Container */
 .logo-container {
   display: flex;
-  justify-content: space-evenly;
-  align-items: center;
+  justify-content: center;
   margin-bottom: 30px; /* Adjust space between logos and the form */
 }
 
@@ -77,7 +76,7 @@ export default {
   text-align: center;
   font-family: Arial, sans-serif;
   background-color: #fafafa;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 h2 {

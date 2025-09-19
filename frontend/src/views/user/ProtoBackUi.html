@@ -1,0 +1,625 @@
+<template>
+  <div class="container">
+    <!-- User Guide Popup -->
+    <UserGuide v-if="isVisible" @close-guide="closeGuidePopup" />
+
+    <!-- Header Section -->
+    <header>
+      <div class="header-content">
+        <h1 class="header-title">BlockWatch</h1>
+        <nav>
+          <a href="#" :class="{ active: activeTab === 'report' }" @click="toggleTab('report')">Write a Report</a>
+          <a href="#" :class="{ active: activeTab === 'track' }" @click="toggleTab('track')">View Reports</a>
+          <a href="#" :class="{ active: activeTab === 'guide' }" @click="toggleTab('guide')">User Guide</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Tabs Navigation -->
+    <div class="tabs-container">
+      <div class="tabs">
+        <button class="tab-btn" :class="{ active: activeTab === 'report' }" @click="toggleTab('report')">Report an Activity</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'track' }" @click="toggleTab('track')">Track a Report</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'guide' }" @click="toggleTab('guide')">User Guide</button>
+      </div>
+    </div>
+
+    <!-- Report Activity Content -->
+    <div v-if="activeTab === 'report'" class="tab-content">
+      <div class="content-box">
+        <h4>File a New Incident Report</h4>
+        <p>Your report will be added to the decentralized ledger. Please provide accurate information.</p>
+
+        <div class="form-group">
+          <label>Your Anonymous Name</label>
+          <input v-model="anonymousName" type="text" class="form-control" placeholder="e.g. Witness101" />
+        </div>
+
+        <div class="form-group">
+          <label>Incident Description</label>
+          <textarea v-model="description" rows="4" class="form-control" placeholder="Describe what happened..."></textarea>
+        </div>
+
+        <div class="upload-icon-container">
+          <label for="file-upload" class="upload-label">
+            <i class='bx bx-upload'></i> Upload an Image or Video
+          </label>
+          <input id="file-upload" type="file" name="file[]" @change="handleFileSelection" multiple style="display:none;" />
+          <p v-if="uploadStatus">{{ uploadStatus }}</p>
+
+          <!-- Preview Images or Videos -->
+          <div v-if="previewUrls.length" class="preview-container">
+            <div v-for="(url, index) in previewUrls" :key="index" class="preview-item">
+              <img v-if="isImage(url)" :src="url" alt="Preview" class="preview-img" />
+              <video v-else-if="isVideo(url)" :src="url" controls class="preview-video"></video>
+
+              <!-- 'X' button to remove the preview -->
+              <i @click="removePreview(index)" class="remove-icon bx bx-x"></i>
+            </div>
+          </div>
+        </div>
+        <div class="submit-btn">
+          <button class="btn-submit" @click="submitReport">Submit Report</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Track Report Content -->
+    <div v-if="activeTab === 'track'" class="tab-content">
+      <div class="content-box">
+        <h3>📋 View Tracking Reports</h3>
+        <input v-model="searchName" type="text" class="form-control my-2" placeholder="Search by anonymous name" />
+
+        <ul class="list-group status-container">
+          <div class="status-labels">
+            <span :class="{'text-danger': 'unverified'}">unverified</span>
+            <span :class="{'text-primary': 'in-progress'}">in progress</span>
+            <span :class="{'text-success': 'verified'}">verified</span>
+          </div>
+          <div class="scrollable-reports">
+            <li class="list-group-item" v-for="(report, index) in filteredReports" :key="index">
+              <p>Alias: {{ report.name }}</p>
+              Report Status: <span :class="getStatusClass(report.status)">{{ report.status }}</span>
+
+              <div class="chat mt-2">
+                <i class='bx bx-message'></i>
+                <input v-model="report.message" placeholder="Message to follow up" class="form-control" />
+                <i class='bx bx-send pt-2' @click="sendMessage(report)" style="cursor: pointer;"> send</i>
+              </div>
+            </li>
+          </div>
+        </ul>
+      </div>
+    </div>
+
+    <!-- User Guide Content -->
+    <div v-if="activeTab === 'guide'" class="tab-content">
+      <div class="content-box text-center w-100">
+        <button class="btn btn-info" @click="showGuide">Watch Guide</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+
+
+<script>
+import axios from 'axios';
+import UserGuide from '@/components/user/UserGuide.vue';
+
+export default {
+  components: {
+    UserGuide,
+  },
+  data() {
+    return {
+      anonymousName: '',
+      description: '',
+      reports: [],
+      searchName: '',
+      uploadStatus: '',
+      isVisible: false,
+      activeTab: 'guide',
+      userIdentity: '',
+      previewUrls: [], // Array to store URLs of preview images or videos
+      uploadedFileNames: [], // Store the file names for removal
+    };
+  },
+  computed: {
+    filteredReports() {
+      if (!this.searchName.trim()) return this.reports;
+      return this.reports.filter(r => r.name.toLowerCase().includes(this.searchName.toLowerCase()));
+    },
+  },
+  methods: {
+    toggleTab(tab) {
+      if (this.activeTab === tab) {
+        this.activeTab = '';
+      } else {
+        this.activeTab = tab;
+      }
+    },
+    showGuide() {
+      this.isVisible = true;
+    },
+    closeGuidePopup() {
+      this.isVisible = false;
+    },
+    handleFileSelection(event) {
+      const files = event.target.files;  // Get all selected files
+      if (!files.length) return;  // No files selected
+
+      // Reset previous preview URLs and file names
+      this.previewUrls = [];
+      this.uploadedFileNames = [];
+
+      // Create FormData for uploading files
+      const formData = new FormData();
+      Array.from(files).forEach((file) => {
+        formData.append('file[]', file);  // Append each file to FormData
+      });
+
+      // Send the files to the server
+      axios.post('http://localhost:3000/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((response) => {
+        // Assuming the response contains the URLs of the uploaded files
+        this.uploadedFileNames = response.data.fileNames; // Store file names for potential removal
+        this.previewUrls = response.data.fileUrls;  // Media links returned by the backend
+        this.uploadStatus = 'Files uploaded successfully';
+      })
+      .catch((error) => {
+        this.uploadStatus = 'Error uploading files.';
+        console.error(error);
+      });
+    },
+
+    // Remove file preview
+    removePreview(index) {
+      const fileName = this.uploadedFileNames[index];
+
+      // Send a request to delete the file from the server
+      axios.delete(`http://localhost:3000/delete-file/${fileName}`)
+        .then(() => {
+          // Remove the preview URL and file name from the arrays
+          this.previewUrls.splice(index, 1);
+          this.uploadedFileNames.splice(index, 1);
+          this.uploadStatus = '';
+        })
+        .catch(() => {
+          this.uploadStatus = 'Error removing file.';
+        });
+    },
+
+    submitReport() {
+      if (!this.anonymousName.trim()) {
+        alert('Please enter your anonymous name.');
+        return;
+      }
+
+      if (!this.description.trim()) {
+        alert('Please enter a crime description.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('anonyname', this.anonymousName);
+      formData.append('description', this.description);
+      formData.append('userIdentity', this.userIdentity);
+
+      // Add file(s) to formData
+      const fileInput = document.getElementById('file-upload');
+      const files = fileInput.files;
+      if (files.length > 0) {
+        Array.from(files).forEach((file) => {
+          formData.append('file[]', file);  // Append each file
+        });
+      }
+
+      // Show upload status
+      this.uploadStatus = 'Uploading...';
+
+      // Send the form data to the server
+      axios.post('http://localhost:3000/report', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then(() => {
+        alert('Report submitted successfully!');
+      })
+      .catch((error) => {
+        this.uploadStatus = 'Error uploading file.';
+        console.error(error);
+      });
+
+      // Reset form fields after submission
+      this.anonymousName = '';
+      this.description = '';
+    },
+
+    async fetchUserIdentity() {
+      try {
+        const response = await axios.get("http://localhost:3000/get-identity-session", { withCredentials: true });
+        this.userIdentity = response.data.userIdentity || '';
+        console.log("Fetched user identity:", this.userIdentity);
+        if (this.userIdentity) {
+          this.fetchReports(this.userIdentity);
+        }
+      } catch (error) {
+        console.error("Error fetching user identity:", error);
+      }
+    },
+
+    async fetchReports(userIdentity) {
+      if (!userIdentity) {
+        console.warn("User identity is not set. Cannot fetch reports.");
+        return;
+      }
+
+      try {
+        const response = await axios.get(`http://localhost:3000/reports?userIdentity=${userIdentity}`, {
+          withCredentials: true,
+        });
+        this.reports = response.data || [];
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+      }
+    },
+
+    sendMessage(report) {
+      console.log('Sending message for report:', report);
+    },
+
+    isImage(url) {
+      return url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.jpeg');
+    },
+
+    isVideo(url) {
+      return url.endsWith('.mp4') || url.endsWith('.webm');
+    },
+  },
+  mounted() {
+    this.fetchUserIdentity();
+  },
+  watch: {
+    userIdentity(newVal) {
+      if (newVal) {
+        this.fetchReports(newVal);
+      }
+    },
+  },
+};
+</script>
+
+<style>/* Global Styles */
+:root {
+  --brand-primary: #1193d4;
+  --brand-primary-hover: #0e76a9;
+  --brand-secondary: #283339;
+  --brand-background: #111618;
+  --brand-surface: #1a2226;
+  --brand-border: #3b4b54;
+  --brand-text-primary: #f0f4f8;
+  --brand-text-secondary: #9db0b9;
+  --brand-text-placeholder: #6a7c85;
+  --button-radius: 8px;
+}
+
+/* Body */
+body {
+  font-family: "Space Grotesk", "Noto Sans", sans-serif;
+  background-color: var(--brand-background);
+  color: var(--brand-text-primary);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Container */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header Styles */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(17, 22, 24, 0.8);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--brand-border);
+  backdrop-filter: blur(5px);
+}
+
+/* Header Content */
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;  /* Ensures the header content uses all the available space */
+}
+
+.header-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--brand-primary);
+  margin-right: auto; /* Pushes the title to the left */
+}
+
+nav {
+  display: flex;
+  gap: 16px;
+  margin-left: auto; /* This will push the navigation links to the far right */
+}
+
+nav a {
+  color: var(--brand-text-secondary);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+nav a:hover,
+nav a.active {
+  color: var(--brand-primary);
+}
+
+/* Tabs Navigation */
+.tabs-container {
+  margin-top: 16px;
+}
+
+.tabs {
+  display: flex;
+  gap: 16px;
+  justify-content: start;
+  padding-bottom: 10px;
+}
+
+.tab-btn {
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--button-radius);
+  cursor: pointer;
+  color: var(--brand-text-secondary);
+  background-color: var(--brand-surface);
+  border: 2px solid transparent;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.tab-btn.active {
+  background-color: var(--brand-primary);
+  color: white;
+  border-bottom: 3px solid var(--brand-primary);
+}
+
+.tab-btn:hover {
+  background-color: var(--brand-primary-hover);
+  color: white;
+}
+
+/* Content Box */
+.content-box {
+  background-color: var(--brand-surface);
+  padding: 24px;
+  border-radius: var(--button-radius);
+  margin-bottom: 24px;
+}
+
+.content-box h3 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--brand-text-primary);
+  text-align: center;
+}
+
+.content-box p {
+  font-size: 14px;
+  color: var(--brand-text-secondary);
+}
+
+/* Form Group Styling */
+.form-group {
+  margin-bottom: 20px;
+  transition: background-color 0.3s ease;
+}
+
+/* When the form field is focused */
+.form-group.focused {
+  background-color: rgba(17, 22, 24, 0.1); /* Light background color */
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  border-radius: var(--button-radius);
+  border: 1px solid var(--brand-border);
+  background-color: var(--brand-surface);
+  color: var(--brand-text-primary);
+  margin-bottom: 16px;
+  transition: background-color 0.3s ease;
+}
+
+/* Optional: Change input background color when focused */
+.form-control:focus {
+  background-color: var(--brand-surface);
+  color: white;
+  outline: none; /* Remove default outline */
+}
+
+/* File Upload */
+.upload-container-icon {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.upload-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--brand-primary);
+  cursor: pointer;
+}
+
+.upload-label i {
+  font-size: 20px;
+}
+
+#file-upload {
+  display: none;
+}
+
+/* Button Styles */
+.submit-btn {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end; /* Aligns the button container to the right */
+}
+
+/* Submit Button */
+.btn-submit {
+  padding: 12px 24px;
+  background-color: var(--brand-primary);
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: var(--button-radius);
+  cursor: pointer;
+  transition: background-color 0.3s;
+  width: auto;  /* Remove 100% width to prevent it from stretching */
+  border: none;
+  margin-left: auto; /* This pushes the button to the right within the parent */
+}
+
+.btn-submit:hover {
+  background-color: var(--brand-primary-hover);
+}
+
+
+/* Track Reports */
+.list-group {
+  list-style-type: none;
+  padding: 0;
+}
+
+.list-group li {
+  background-color: var(--brand-border);
+  padding: 12px;
+  border-radius: var(--button-radius);
+  margin-bottom: 12px;
+}
+
+.list-group p {
+  font-size: 14px;
+  color: var(--brand-text-primary);
+}
+
+.status-container {
+  display: flex;
+  gap: 12px;
+}
+
+.status-container .unverified {
+  color: var(--brand-primary);
+}
+
+.status-container .in-progress {
+  color: var(--brand-text-secondary);
+}
+
+.status-container .verified {
+  color: var(--brand-text-primary);
+}
+
+input[type="file"] {
+  display: none;
+}
+
+/* User Guide */
+button {
+  padding: 12px 32px;
+  background-color: var(--brand-primary);
+  color: white;
+  font-size: 16px;
+  border-radius: var(--button-radius);
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: var(--brand-primary-hover);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 16px;
+  }
+
+  nav {
+    margin-left: 0;
+    margin-top: 16px;
+    justify-content: flex-start;
+  }
+
+  .tabs {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .tab-btn {
+    width: 100%;
+    text-align: left;
+  }
+
+  .form-control {
+    font-size: 16px;
+    padding: 10px;
+  }
+
+  .btn-submit {
+    width: 100%;
+    padding: 14px 24px;
+  }
+
+  .upload-container-icon {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  header {
+    padding: 10px;
+  }
+
+  .form-control {
+    font-size: 16px;
+    padding: 10px;
+  }
+
+  .submit-btn {
+    margin-top: 16px;
+    justify-content: center; /* Center button on mobile */
+  }
+
+  .tabs {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+}
+</style>

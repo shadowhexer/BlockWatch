@@ -1,22 +1,33 @@
-const fs = require("fs");
-const https = require("https");
-const http = require("http");
-const express = require("express");
-const session = require("express-session");
-const cors = require("cors");
-const { Gateway, Wallets } = require("fabric-network");
-const path = require("path");
-const crypto = require("crypto"); // Import crypto for hashing
-const bcrypt = require("bcrypt");
-const multer = require("multer");
-const upload = multer(); // no disk storage, just memory
-const validator = require("validator");
-require("dotenv").config(); // This loads the environment variables from your .env file
+import fs from "fs";
+import https from "https";
+import http from "http";
+import express from "express";
+import session from "express-session";
+import cors from "cors";
+import { Gateway, Wallets } from "fabric-network";
+import path from "path";
+import crypto from "crypto"; // Import crypto for hashing
+import bcrypt from "bcrypt";
+import multer from "multer"; // Using multer for file uploads
+import validator from "validator";
+import dotenv from "dotenv"; // This loads the environment variables from your .env file
+
+// Initialize dotenv for environment variables
+dotenv.config();
+import { fileURLToPath } from "url";
+
+// ES Modules workaround for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
-const { classifyCrime } = require("./crimedetector"); // Import the crime classification function
-const { connectToFabric, mysqlConnection } = require("./fabricConnector"); // Your connection function
+// Import custom modules
+import { classifyCrime } from "./crimedetector.js"; // Import the crime classification function
+import { connectToFabric, mysqlConnection } from "./fabricConnector.js"; // Your connection function
+import { uploadFiles } from "./helia.js"; // Import the IPFS upload function
+
+// Your app logic here
 
 app.use(
   cors({
@@ -31,23 +42,28 @@ app.use(
     secret: "Nik@16310909!@", // Replace with a strong secret
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      maxAge: 60000 * 60, // 1 hour
+    }
   })
 );
 
 // Middleware for parsing JSON body data
 app.use(express.json());
 
-// ✅ Serve frontend from 'crime-system' folder
-app.use(express.static(path.join(__dirname, "UI", "dist")));
-
-// Set up storage for uploaded files
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = file.mimetype.startsWith('image/') ? './uploads/images' : './uploads/videos';
+    // Define uploadDir inside the function where 'file' is available
+    const uploadDir = file.mimetype.startsWith("image/")
+      ? "./uploads/images"
+      : "./uploads/videos";
+
+    // Ensure the directory exists
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
-    cb(null, uploadDir);
+
+    cb(null, uploadDir); // Pass the uploadDir to cb()
   },
   filename: (req, file, cb) => {
     const fileName = Date.now() + path.extname(file.originalname);
@@ -56,44 +72,65 @@ const storage = multer.diskStorage({
 });
 
 const uploads = multer({ storage: storage });
+const upload = multer({ storage: storage });
 
 // Store uploaded files' paths for later deletion
 let uploadedFiles = {};
 
-app.post('/upload', uploads.single('file'), (req, res) => {
-  const fileUrl = `http://localhost:3000/uploads/${req.file.mimetype.startsWith('image/') ? 'images' : 'videos'}/${req.file.filename}`;
+app.post("/upload", upload.array("file[]"), (req, res) => {
+  // Initialize an array to store the URLs of uploaded files
+  let fileUrls = [];
   
-  // Store the file path for later deletion
-  uploadedFiles[req.file.filename] = path.join(__dirname, 'uploads', req.file.mimetype.startsWith('image/') ? 'images' : 'videos', req.file.filename);
+  // Iterate through the uploaded files
+  req.files.forEach((file) => {
+    const fileUrl = `http://localhost:3000/uploads/${
+      file.mimetype.startsWith("image/") ? "images" : "videos"
+    }/${file.filename}`;
 
-  res.send({ fileUrl, fileName: req.file.filename }); // Send file URL and filename
+    // Store the file path for later deletion (optional)
+    uploadedFiles[file.filename] = path.join(
+      __dirname,
+      "uploads",
+      file.mimetype.startsWith("image/") ? "images" : "videos",
+      file.filename
+    );
+
+    // Push the file URL to the fileUrls array
+    fileUrls.push(fileUrl);
+  });
+
+  // Send the file URLs and file names back to the frontend
+  res.send({ fileUrls, fileNames: req.files.map(file => file.filename) });
 });
 
-// API endpoint to remove file
-app.delete('/delete-file/:fileName', (req, res) => {
+app.delete("/delete-file/:fileName", (req, res) => {
   const fileName = req.params.fileName;
 
-  // Find file path from memory
+  // Find the file path from memory (stored in uploadedFiles)
   const filePath = uploadedFiles[fileName];
-  
+
   if (!filePath) {
-    return res.status(404).send('File not found.');
+    return res.status(404).send("File not found.");
   }
 
-  // Remove the file from the server
-  fs.unlink(filePath, (err) => {
+  // Make sure the file path is absolute
+  const absoluteFilePath = path.resolve(filePath); // Ensure the path is absolute
+
+  // Remove the file from the server using fs.unlink
+  fs.unlink(absoluteFilePath, (err) => {
     if (err) {
-      return res.status(500).send('Error deleting file.');
+      console.error("Error deleting file:", err);
+      return res.status(500).send("Error deleting file.");
     }
-    
-    // Optionally, remove the file from the memory/database
+
+    // Optionally, remove the file path from the uploadedFiles object
     delete uploadedFiles[fileName];
 
-    res.send('File deleted successfully.');
+    res.send("File deleted successfully.");
   });
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Route to check session for user identity
 app.get("/get-identity-session", (req, res) => {
   console.log("Session data:", req.session);
@@ -239,11 +276,10 @@ app.post("/updateAssignmentStatus", async (req, res) => {
     return res.status(500).send({ error: "Server error" });
   }
 });
-
-// ✅ POST /report → submit a new crime
-app.post("/report", upload.none(), async (req, res) => {
-  const { description, anonyname, userIdentity } = req.body; // Receive data from the request body
-  const status = req.body.status || "unread";
+// POST route to report a crime and upload files to IPFS
+app.post("/report", uploads.array("file[]"), async (req, res) => {
+  const { description, anonyname, userIdentity } = req.body;
+  const status = req.body.status || "unverified";
   const date = new Date().toISOString().slice(0, 19).replace("T", " "); // 'YYYY-MM-DD HH:MM:SS'
 
   // Validate required fields
@@ -252,30 +288,41 @@ app.post("/report", upload.none(), async (req, res) => {
   }
 
   try {
-    // Generate hash
+    // Generate hash for the crime data (replace with your actual hashing method)
     const dataHash = generateHash(description, date, status);
 
-    // Retrieve identity from the database (use promise-based API)
+    // Retrieve user identity from the database
     const [identityResult] = await mysqlConnection
       .promise()
       .query("SELECT id FROM registeredUser WHERE barangay = ?", [
         userIdentity,
       ]);
 
-    // Check if identity exists
     if (identityResult.length === 0) {
       return res.status(404).json({ error: "User identity not found" });
     }
 
-    const identity = identityResult[0].id; // Get the user id from the result
+    const identity = identityResult[0].id; // Get user ID from the result
 
-    const crimeCategory = classifyCrime({ description }); // Classify the crime based on the description
+    // Classify the crime based on the description (replace with your actual classification logic)
+    const crimeCategory = classifyCrime({ description });
 
-    // Insert into MySQL
+    // Handle multiple file uploads and get their links (assuming uploadFiles returns an array of URLs or CIDs)
+    let mediaLinks = await uploadFiles(
+      req.files.map((file) => file.path) // Get file paths from req.files
+    );
+    console.log("Media Links:", mediaLinks); // Debug: Check uploaded file links
+    // Join the array of CIDs into a single comma-separated string
+    const mediaLink = mediaLinks.length > 0 ? mediaLinks.join(",") : null;
+
+    // Log the final mediaLink to store (as a single string)
+    console.log("Final Media Link to store:", mediaLink);
+
+    // Insert the report data into MySQL
     const [insertResult] = await mysqlConnection
       .promise()
       .query(
-        "INSERT INTO crime_reports (description, date, status, data_hash, anonyname, rb_id, category) VALUES (?, ?, ?, ?, ?, ?,?)",
+        "INSERT INTO crime_reports (description, date, status, data_hash, anonyname, rb_id, category, medialink) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         [
           description,
           date,
@@ -284,17 +331,20 @@ app.post("/report", upload.none(), async (req, res) => {
           anonyname,
           identity,
           crimeCategory,
+          mediaLink
         ]
       );
 
     const insertedId = insertResult.insertId;
 
-    // Retrieve the full record
+    // Retrieve the full report data from MySQL
     const [rows] = await mysqlConnection
       .promise()
       .query("SELECT * FROM crime_reports WHERE crime_id = ?", [insertedId]);
 
-    const record = rows[0]; // Full record
+    const record = rows[0]; // Full report record
+
+    console.log("MySQL: report record:", record);
 
     if (!userIdentity) {
       return res
@@ -303,7 +353,7 @@ app.post("/report", upload.none(), async (req, res) => {
     }
 
     try {
-      // Connect to Fabric using userIdentity and orgMSP based on user identity
+      // Connect to Fabric using the user identity and organization
       const orgMSP = userIdentity === "Mahay" ? "Org1MSP" : "Org2MSP"; // Set OrgMSP based on user identity
       const gatewayResponse = await connectToFabric(userIdentity, orgMSP); // Use the session's user identity
       if (!gatewayResponse.success) {
@@ -318,10 +368,11 @@ app.post("/report", upload.none(), async (req, res) => {
           .status(500)
           .json({ error: "Failed to get network from Fabric Gateway" });
       }
+
       const network = await gateway.getNetwork("mychannel");
       const contract = network.getContract("app");
 
-      // Send full record to Fabric
+      // Send the full report data to Fabric
       await contract.submitTransaction(
         "reportCrime",
         String(record.crime_id),
@@ -331,7 +382,8 @@ app.post("/report", upload.none(), async (req, res) => {
         String(record.data_hash),
         String(record.anonyname),
         String(record.rb_id),
-        String(record.category)
+        String(record.category),
+        String(record.medialink)
       );
 
       console.log("📨 Full report submitted to Fabric:", record);
@@ -431,7 +483,6 @@ app.get("/crime/:id", async (req, res) => {
 
 // GET route to fetch all crime reports from the blockchain
 app.get("/blockchain/reports", async (req, res) => {
-
   // Fetch user identity or default to 'org1-admin'
   const userIdentity = req.query.userIdentity || "org1-admin";
   console.log(`Checking identity for: ${userIdentity}`);
@@ -466,7 +517,7 @@ app.get("/blockchain/reports", async (req, res) => {
     const parsed = JSON.parse(result.toString()); // Convert result to JSON
     res.json(parsed); // Send the crime reports to the client
 
-    await gateway.disconnect(); // Disconnect from Fabric after processing
+    gateway.disconnect(); // Disconnect from Fabric after processing
   } catch (error) {
     console.error("❌ Error retrieving data from blockchain:", error.message);
     res.status(500).json({
@@ -475,7 +526,6 @@ app.get("/blockchain/reports", async (req, res) => {
     });
   }
 });
-
 
 // ✅ Counting tanods on each assignment
 app.get("/assignments/count", (req, res) => {
@@ -689,12 +739,21 @@ app.post("/register", (req, res) => {
   });
 });
 
+app.get("/identity-session", (req, res) => {
+  if (req.session.username) {
+    res.json({ username: req.session.username });
+  } else {
+    res.json({ error: "No active session" });
+  }
+});
 // Login endpoint
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.json({ error: "Username and password required" });
   }
+
+  req.session.username = username;
 
   const findUserQuery = "SELECT * FROM tanod_users WHERE username = ?";
   mysqlConnection.query(findUserQuery, [username], (err, results) => {
@@ -707,7 +766,10 @@ app.post("/login", (req, res) => {
     bcrypt.compare(password, user.password, (err, result) => {
       if (err) return res.json({ error: "Error during authentication" });
       if (result) {
-        res.json({ message: "Login successful" });
+        res.json({
+          message: "Login successful",
+          username: req.session.username,
+        });
       } else {
         res.json({ error: "Invalid password" });
       }

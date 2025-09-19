@@ -6,17 +6,14 @@
     <!-- Tabs Navigation (Vertical & Centered) -->
     <div class="tabs-container">
       <div class="tabs">
-        <!-- Report an Activity Tab -->
         <button class="btn btn-primary" :class="{ active: activeTab === 'report' }" @click="toggleTab('report')">
           Report an Activity
         </button>
 
-        <!-- Track a Report Tab -->
         <button class="btn btn-primary" :class="{ active: activeTab === 'track' }" @click="toggleTab('track')">
           Track a Report
         </button>
 
-        <!-- User Guide Tab -->
         <button class="btn btn-primary" :class="{ active: activeTab === 'guide' }" @click="toggleTab('guide')">
           User Guide
         </button>
@@ -42,16 +39,15 @@
           <label for="file-upload" class="upload-label">
             <i class='bx bx-upload'></i> Upload an Image or Video
           </label>
-          <input id="file-upload" type="file" @change="handleFileUpload" multiple style="display:none;" />
+          <input id="file-upload" type="file" name="file[]" @change="handleFileSelection" multiple style="display:none;" />
           <p v-if="uploadStatus">{{ uploadStatus }}</p>
 
-           <!-- Preview Images or Videos -->
+          <!-- Preview Images or Videos -->
           <div v-if="previewUrls.length" class="preview-container">
             <div v-for="(url, index) in previewUrls" :key="index" class="preview-item">
               <img v-if="isImage(url)" :src="url" alt="Preview" class="preview-img" />
               <video v-else-if="isVideo(url)" :src="url" controls class="preview-video"></video>
 
-              <!-- "X" icon to remove preview -->
               <i @click="removePreview(index)" class="remove-icon bx bx-x"></i>
             </div>
           </div>
@@ -75,28 +71,26 @@
             <span :class="{'text-primary': 'in-progress'}">in progress</span>
             <span :class="{'text-success': 'verified'}">verified</span>
           </div>
-
-          <li class="list-group-item" v-for="(report, index) in filteredReports" :key="index">
-            <div>
+          <div class="scrollable-reports">
+            <li class="list-group-item" v-for="(report, index) in filteredReports" :key="index">
               <p>Alias: {{ report.name }}</p>
               Report Status: <span
-              :class="{
-                'status-label': true,
-                'unverified': report.status === 'unverified',
-                'in-progress': report.status === 'in-progress',
-                'verified': report.status === 'verified'
-              }">
-              {{ report.status }}
-            </span>
+                :class="{
+                  'status-label': true,
+                  'unverified': report.status === 'unverified',
+                  'in-progress': report.status === 'in-progress',
+                  'verified': report.status === 'verified'
+                }">
+                {{ report.status }}
+              </span>
 
-            </div>
-
-            <div class="chat mt-2">
-              <i class='bx  bx-message'></i>
-              <input v-model="report.message" placeholder="Message to follow up" class="form-control" />
-              <i class='bx bx-send pt-2' @click="sendMessage(report)" style="cursor: pointer;"> send</i>
-            </div>
-          </li>
+              <div class="chat mt-2">
+                <i class='bx bx-message'></i>
+                <input v-model="report.message" placeholder="Message to follow up" class="form-control" />
+                <i class='bx bx-send pt-2' @click="sendMessage(report)" style="cursor: pointer;"> send</i>
+              </div>
+            </li>
+          </div>
         </ul>
       </div>
     </div>
@@ -126,7 +120,7 @@ export default {
       searchName: '',
       uploadStatus: '',
       isVisible: false,
-      activeTab: '',
+      activeTab: 'guide',
       userIdentity: '',
       previewUrls: [],
       uploadedFileNames: [],
@@ -158,27 +152,22 @@ export default {
         this.activeTab = '';  // Hide tab content if clicked outside
       }
     },
-    handleFileUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    handleFileSelection(event) {
+      const files = event.target.files;  // Get all selected files
+      if (!files.length) return;  // No files selected
 
-      const formData = new FormData();
-      formData.append('file', file);
+      // Reset previous preview URLs and file names
+      this.previewUrls = [];
+      this.uploadedFileNames = [];
 
-      // Show upload status
-      this.uploadStatus = 'Uploading...';
-
-      // Send the file to the server
-      axios.post('http://localhost:3000/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      .then((response) => {
-        // Assuming the response contains the URL of the uploaded file
-        this.previewUrls.push(response.data.fileUrl); // URL returned from the server
-        this.uploadedFileNames.push(response.data.fileName); // Store the file name for deletion
-      })
-      .catch(() => {
-        this.uploadStatus = 'Error uploading file.';
+      // Create a FormData object for the file(s) and append them
+      Array.from(files).forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.previewUrls.push(e.target.result); // For preview
+        };
+        reader.readAsDataURL(file); // Preview images and videos
+        this.uploadedFileNames.push(file.name); // Save file names for deletion
       });
     },
     removePreview(index) {
@@ -210,25 +199,46 @@ export default {
       const formData = new FormData();
       formData.append('anonyname', this.anonymousName);
       formData.append('description', this.description);
+      formData.append('userIdentity', this.userIdentity);
 
+      // Add file(s) to formData
+      const fileInput = document.getElementById('file-upload');
+      const files = fileInput.files;
+      if (files.length > 0) {
+        Array.from(files).forEach((file) => {
+          formData.append('file[]', file); // Append each file
+        });
+      }
+
+      // Show upload status
+      this.uploadStatus = 'Uploading...';
+
+      // Send the form data to the server
       axios.post('http://localhost:3000/report', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      .then(() => {
-        alert('Report submitted.');
-        this.fetchReports();
+      .then((response) => {
+        // Assuming the response contains the URL of the uploaded files
+        this.previewUrls = response.data.fileUrls;  // Assuming the server returns an array of file URLs
+        this.uploadStatus = 'Upload successful';
+        alert('Report submitted successfully!');
       })
-      .catch(() => {
-        alert('Server error.');
+      .catch((error) => {
+        this.uploadStatus = 'Error uploading file.';
+        console.error(error);
       });
 
+      // Reset form fields after submission
       this.anonymousName = '';
       this.description = '';
+      this.previewUrls = [];
+      this.uploadedFileNames = [];
     },
     async fetchUserIdentity() {
       try {
         const response = await axios.get("http://localhost:3000/get-identity-session", { withCredentials: true });
         this.userIdentity = response.data.userIdentity || '';
+        console.log("Fetched user identity:", this.userIdentity);
         if (this.userIdentity) {
           this.fetchReports(this.userIdentity);
         }
@@ -293,6 +303,11 @@ html, body {
   padding: 20px;
   max-width: 100%;
   overflow-y: auto;
+}
+.scrollable-reports {
+  max-height: 250px; /* Adjust the height as needed */
+  overflow-y: auto; /* Enable vertical scrolling */
+  margin-top: 10px;
 }
 /* Make .btn gray with white text */
 .btn {
@@ -367,7 +382,7 @@ html, body {
 }
 
 .tabs {
-  margin-top: 300px;
+  margin-top: 100px;
   display: flex;
   flex-direction: row;  /* Horizontal layout for buttons */
   place-items: center;
@@ -508,4 +523,3 @@ html, body {
 }
 
 </style>
-

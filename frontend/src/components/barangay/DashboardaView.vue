@@ -1,48 +1,88 @@
 <template>
-  <div class="dashboard">
-    <!-- Date Picker for Selecting a Date -->
-    <div class="date-selector">
-      <label for="report-date">Select Date:</label>
-      <input type="date" v-model="selectedDate" @change="filterReportsByDate" />
-    </div>
-
-    <!-- Main Content Layout with Border (Table-like structure) -->
-    <div class="main-content-container">
-      <div class="main-content">
-        <!-- Pie Chart for Crime Statistics (Small Picture) -->
-        <h2>Crime Statistics Overview</h2>
-        <div class="chart-container">
-          <Pie :data="chartData" :options="chartOptions" :width="100" :height="100" />
-        </div>
-
-        <!-- Right-side Boxes for Report Information -->
-        <div class="items">
-          <div class="info-box blue">
-            <h4>Today's Report Total</h4>
-            <p>{{ computedTotalReports }}</p>
-            <p>{{ reportsTodayPercentage }}% ({{ selectedDate }})</p>
+  <div class="container py-4 bg-dark text-white">
+    <!-- Section 1: Crime Statistics Overview -->
+    <div class="row mb-4">
+      <h2 class="mb-3">Crime Statistics Overview</h2>
+      <div class="col-12 col-md-5">
+        <div class="card bg-transparent border border-light text-white">
+          <div class="card-body">
+            <h4 class="card-title">Reports Overview</h4>
+            <div class="chart-container text-center">
+              <div class="pie-chart">
+                <Pie :data="chartData" :options="chartOptions" :width="200" :height="100" />
+              </div>
+            </div>
           </div>
-          <div class="info-box purple">
-            <h4>Total Reports</h4>
-            <p>{{ computedTotalReports }}</p>
-            <p>{{ reportsPercentage }}% ({{ selectedDate }})</p>
+        </div>
+      </div>
+
+      <!-- Report Info Column -->
+      <div class="col-12 col-md-4 me-4 mt-5">
+        <div class="row">
+          <div class="col-12 mb-3">
+            <div class="card bg-transparent border border-light mb-3">
+              <div class="card-body">
+                <h4 class="card-title text-light">Today's Report Total</h4>
+                <p class="card-text text-info bold fs-2 fw-bold">{{ computedTotalReports }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="card text-info bg-transparent border border-light mb-3">
+              <div class="card-body">
+                <h4 class="card-title text-light">Report percentage</h4>
+                <p class="card-text text-info fs-2">{{ reportsTodayPercentage }}%</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Crime Stats (Remaining Content) -->
-    <div class="stats-container">
-      <h3>Crime Statistics</h3>
-      <p>Total Reports: {{ computedTotalReports }}</p>
-      <p>High Crime Reports: {{ highCrimeReports }}</p>
-      <p>Low Crime Reports: {{ lowCrimeReports }}</p>
+    <!-- Section 2: Crime Statistics Summary -->
+    <div class="row mb-5">
+      <div class="col-12">
+        <h3>Crime Statistics</h3>
+        <div class="row">
+          <div class="col-md-4">
+            <div class="card text-secondary bg-transparent border border-success mb-3">
+              <div class="card-body">
+                <h4 class="card-title">Total of Verified Reports</h4>
+                <p class="card-text text-light fs-3 fw-bold">{{ computedTotalReports }}</p>
+                <progress :value="computedTotalReports" class="bg-success"></progress>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-secondary bg-transparent border border-danger mb-3">
+              <div class="card-body">
+                <h4 class="card-title">High Crime Reports</h4>
+                <p class="card-text text-light fs-3 fw-bold">{{ highCrimeReports }}</p>
+                <progress :value="highCrimeReports" class="bg-danger"></progress>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-secondary bg-transparent border border-info mb-3">
+              <div class="card-body">
+                <h4 class="card-title">Low Crime Reports</h4>
+                <p class="card-text text-light fs-3 fw-bold">{{ lowCrimeReports }}</p>
+                <progress :value="lowCrimeReports" :max="computedTotalReports" class="bg-info"></progress>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- High Crime Reports Table -->
-    <div class="crime-table">
-      <h3>High Crime Reports</h3>
-      <table>
+   <!-- Section 3: High Crime Reports Table -->
+<div class="row mb-4">
+  <div class="col-12">
+    <h3>High Crime Reports</h3>
+    <!-- Check if there are any high crime reports -->
+    <template v-if="highCrimeReportsList.length > 0">
+      <table class="table table-bordered table-dark">
         <thead>
           <tr>
             <th>Crime ID</th>
@@ -62,12 +102,21 @@
           </tr>
         </tbody>
       </table>
-    </div>
+    </template>
+    <!-- If there are no high crime reports -->
+    <template v-else>
+      <p class="text-danger">No reported high crimes.</p>
+    </template>
+  </div>
+</div>
 
-    <!-- Low Crime Reports Table -->
-    <div class="crime-table">
-      <h3>Low Crime Reports</h3>
-      <table>
+<!-- Section 4: Low Crime Reports Table -->
+<div class="row mb-4">
+  <div class="col-12">
+    <h3>Low Crime Reports</h3>
+    <!-- Check if there are any low crime reports -->
+    <template v-if="lowCrimeReportsList.length > 0">
+      <table class="table table-bordered table-dark">
         <thead>
           <tr>
             <th>Crime ID</th>
@@ -83,11 +132,17 @@
             <td>{{ report.description }}</td>
             <td>{{ report.anonyname }}</td>
             <td>{{ report.category }}</td>
-            <td>{{ report.date}} </td>
+            <td>{{ report.date }}</td>
           </tr>
         </tbody>
       </table>
-    </div>
+    </template>
+    <!-- If there are no low crime reports -->
+    <template v-else>
+      <p class="text-danger">No reported low crimes.</p>
+    </template>
+  </div>
+</div>
   </div>
 </template>
 
@@ -111,7 +166,6 @@ export default {
       reportsTodayPercentage: 0, // Placeholder for today's report percentage
       totalReports: 0, // Placeholder for total reports
       reportsPercentage: 0, // Placeholder for percentage of total reports
-      selectedDate: '', // Placeholder for selected date (formatted as YYYY-MM-DD)
       userIdentity: '', // Placeholder for user identity
     };
   },
@@ -169,204 +223,61 @@ export default {
       };
     },
   },
-created() {
-  // Fetch data from the server when the component is created
-  this.fetchCrimeReports();
-},
-methods: {
-  getApiBase() {
-    const isNgrok = location.hostname.includes("ngrok");
-    return isNgrok
-      ? `http://${location.hostname}`
-      : "http://localhost:3000";
+  created() {
+    this.fetchUserIdentity();
   },
-  async fetchUserIdentity() {
-    try {
-      const response = await fetch("http://localhost:3000/get-identity-session", {
-        method: "GET",
-        credentials: "include",  // Ensure cookies (session) are sent
-      });
+  methods: {
+    getApiBase() {
+      const isNgrok = location.hostname.includes("ngrok");
+      return isNgrok
+        ? `http://${location.hostname}`
+        : "http://localhost:3000";
+    },
 
-      if (response.ok) {
-        const data = await response.json();
-        this.userIdentity = data.userIdentity; // Store user identity in data
-        console.log("User Identity:", this.userIdentity); // Log to confirm it
-      } else {
-        const errorData = await response.json();
-        console.error("Failed to retrieve user identity:", errorData.message);
-      }
-    } catch (error) {
-      console.error("Error fetching user identity:", error);
-    }
-  },
- async fetchCrimeReports() {
-  const apiBase = this.getApiBase();
-
-  try {
-    // Get the current userIdentity (this could be set on login or by some other logic in your app)
-    const userIdentity = this.userIdentity || 'org1-admin';  // Default to org1-admin if not set
-
-    // Add userIdentity to the API request
-    const response = await axios.get(`${apiBase}/blockchain/reports?userIdentity=${encodeURIComponent(userIdentity)}`, {
-      method: "GET",
-      withCredentials: true,  // Include cookies with the request
-    });
-
-    const data = response.data;
-    if (data && data.length > 0) {
-      this.crimeReports = data;
-    }
-
-    // Optionally calculate the total reports today and percentage
-    this.totalReports = this.crimeReports.length;
-
-    // If you want to calculate reports today (assuming 'High' category is for today's reports)
-    this.totalReportsToday = this.crimeReports.filter(report => report.category === 'High').length;
-    this.reportsTodayPercentage = (this.totalReportsToday / this.totalReports * 100).toFixed(2);
-  } catch (error) {
-    console.error('Error fetching crime reports:', error);
-  }
-}
-,
-
-    filterReportsByDate() {
-      if (this.selectedDate) {
-        // Convert the selected date (DD/MM/YY) to match the format of report.date
-        const formattedSelectedDate = this.convertToISOFormat(this.selectedDate);
-
-        // Filter reports based on selected date (convert report.date to DD/MM/YY for comparison)
-        const filteredReports = this.crimeReports.filter(report => {
-          const formattedReportDate = this.convertToDDMMYY(report.date); // Convert report date to DD/MM/YY
-          return formattedReportDate === formattedSelectedDate;
+    async fetchUserIdentity() {
+      try {
+        const response = await axios.get('http://localhost:3000/get-identity-session', {
+          withCredentials: true,
         });
 
-        // Log the filtered reports to the console for debugging
-        console.log("Filtered Reports:", filteredReports);
-
-        // Update the crimeReports array with the filtered data
-        this.crimeReports = filteredReports;
-      } else {
-        this.fetchCrimeReports(); // Reset to full reports if no date selected
+        if (response.status === 200) {
+          this.userIdentity = response.data.userIdentity;
+          this.fetchCrimeReports();
+        } else {
+          console.error("Failed to retrieve user identity:", response.data.message);
+        }
+      } catch (error) {
+        console.error("Error fetching user identity:", error);
       }
     },
 
-    // Method to convert a date to DD/MM/YY format
-    convertToDDMMYY(date) {
-      const reportDate = new Date(date); // Convert string to Date object
-      const day = String(reportDate.getDate()).padStart(2, '0'); // Get day and pad with zero if necessary
-      const month = String(reportDate.getMonth() + 1).padStart(2, '0'); // Get month and pad with zero if necessary
-      const year = String(reportDate.getFullYear()).slice(-2); // Get last two digits of year (YY)
-      return `${day}/${month}/${year}`;
-    },
+    async fetchCrimeReports() {
+      const apiBase = this.getApiBase();
 
-    // Method to convert selected date (DD/MM/YY) to YYYY-MM-DD for comparison with report date
-    convertToISOFormat(date) {
-      const [day, month, year] = date.split('/');
-      const fullYear = `20${year}`; // Assuming year is in YY format (e.g., 2025)
-      return `${fullYear}-${month}-${day}`;
+      try {
+        const userIdentity = this.userIdentity;
+
+        const response = await axios.get(`${apiBase}/blockchain/reports?userIdentity=${encodeURIComponent(userIdentity)}`, {
+          method: "GET",
+          withCredentials: true,
+        });
+
+        this.crimeReports = response.data;
+
+        // Calculate today's reports and percentages
+        this.totalReports = this.crimeReports.length;
+        this.totalReportsToday = this.crimeReports.filter(report => report.category === 'High').length;
+        this.reportsTodayPercentage = (this.totalReportsToday / this.totalReports * 100).toFixed(2);
+
+        // Handle cases where there are no high crime reports
+        if (this.highCrimeReports === 0) {
+          this.reportsTodayPercentage = (this.lowCrimeReports / this.totalReports * 100).toFixed(2);
+        }
+
+      } catch (error) {
+        console.error("Error fetching crime reports:", error);
+      }
     },
   },
-
 };
 </script>
-
-<style scoped>
-.dashboard {
-  padding: 20px;
-  font-family: Arial, sans-serif;
-  position: relative;
-}
-
-.main-content-container {
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 30px;
-}
-
-.main-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.chart-container {
-  width: 30%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-right: 20px;
-}
-
-.items {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  width: 70%;
-}
-
-.info-box {
-  margin: 10px;
-  padding: 10px;
-  border-radius: 8px;
-  color: white;
-  width: 45%; /* Two boxes per row */
-}
-
-.blue {
-  background-color: #4D9BF9;
-}
-
-.purple {
-  background-color: #6F42C1;
-}
-
-.red {
-  background-color: #D9534F;
-}
-
-.orange {
-  background-color: #F0AD4E;
-}
-
-.stats-container,
-.crime-table {
-  margin: 20px 0;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-}
-
-.stats-container p {
-  font-size: 16px;
-}
-
-.crime-table table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.crime-table th, .crime-table td {
-  padding: 10px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
-
-.crime-table th {
-  background-color: #f2f2f2;
-}
-
-.date-selector {
-  margin-bottom: 20px;
-}
-
-.date-selector label {
-  font-size: 16px;
-  margin-right: 10px;
-}
-
-.date-selector input {
-  padding: 5px;
-  font-size: 14px;
-}
-</style>

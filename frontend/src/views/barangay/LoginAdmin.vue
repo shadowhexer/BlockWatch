@@ -119,7 +119,7 @@ export default {
           this.statusColor = "green";
 
           // Redirect to the report page
-          this.$router.push({ path: "/barangay-view", query: { userIdentity: this.userIdentity } });
+          this.$router.push({ path: "/reports-list", query: { userIdentity: this.userIdentity } });
         } else {
           const errorData = await response.json();
           throw new Error(errorData.message);
@@ -139,7 +139,7 @@ export default {
 
 <style scoped>
 #user-identity {
-  background-color: #FAF7F3; /* Light grey background */
+  background-color: #262529; /* Light grey background */
   min-height: 100vh;
   display: flex;
   justify-content: center;

@@ -6,6 +6,7 @@ import './scss/styles.scss'
 // Import Bootstrap’s CSS (Bootstrap's CSS should be imported separately before JS)
 import 'bootstrap/dist/css/bootstrap.min.css'
 
+import 'bootstrap-icons/font/bootstrap-icons.css'
 // Import all of Bootstrap’s JS
 import 'bootstrap'
 import 'boxicons/css/boxicons.min.css'
