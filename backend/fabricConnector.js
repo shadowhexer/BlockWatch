@@ -3,11 +3,16 @@ import path from "path";
 import { Gateway, Wallets } from "fabric-network"; // Assuming you're using Hyperledger Fabric SDK
 import mysql from "mysql2"; // Importing mysql2 for MySQL database connection
 
+import dotenv from "dotenv"; // This loads the environment variables from your .env file
+
+// Initialize dotenv for environment variables
+dotenv.config();
+
 const mysqlConnection = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Nik@1631",
-  database: "crime_report_db", // Replace with your actual database name
+  host: process.env.DB_HOST || "localhost", // Replace with your actual database host
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "Nik@1631",
+  database: process.env.DATABASE || "crime_report_db", // Replace with your actual database name
 });
 
 // Utility function to connect to Fabric Gateway
